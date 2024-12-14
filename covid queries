@@ -1,0 +1,82 @@
+SELECT * FROM public.countrywiselatest
+----
+"recovery greater than 90%"
+SELECT 
+    Country_Region, 
+    Recovered_per_100_Cases, 
+    Deaths_per_100_Cases
+FROM 
+    CountryWiseLatest
+WHERE 
+    Recovered_per_100_Cases > 90 AND Deaths_per_100_Cases < 2
+ORDER BY 
+    Recovered_per_100_Cases DESC;
+
+
+------
+"weekly case growth exceeds global average"
+WITH Global_Average AS (
+    SELECT 
+        AVG(One_week_percent_increase) AS Average_Increase
+    FROM 
+        CountryWiseLatest
+)
+SELECT 
+    Country_Region, 
+    One_week_percent_increase
+FROM 
+    CountryWiseLatest, Global_Average
+WHERE 
+    One_week_percent_increase > Global_Average.Average_Increase
+ORDER BY 
+    One_week_percent_increase DESC;
+
+-----
+"fatality rate"
+SELECT 
+    WHO_Region, 
+    ROUND(SUM(Deaths) * 100.0 / SUM(Confirmed), 2) AS Case_Fatality_Rate
+FROM 
+    CountryWiseLatest
+GROUP BY 
+    WHO_Region
+ORDER BY 
+    Case_Fatality_Rate DESC;
+
+-------
+"most consistent - percentage change"
+SELECT 
+    Country_Region, 
+    One_week_percent_increase
+FROM 
+    CountryWiseLatest
+WHERE 
+    Confirmed > 1000 -- Avoid very small datasets skewing results
+ORDER BY 
+    One_week_percent_increase ASC
+LIMIT 10;
+-------
+
+SELECT 
+    WHO_Region, 
+    ROUND(SUM(Active) * 100.0 / SUM(Confirmed), 2) AS Active_Cases_Percentage
+FROM 
+    CountryWiseLatest
+GROUP BY 
+    WHO_Region
+ORDER BY 
+    Active_Cases_Percentage DESC;
+
+-------
+"most global death count"
+SELECT 
+    Country_Region, 
+    Deaths, 
+    ROUND(Deaths * 100.0 / (SELECT SUM(Deaths) FROM CountryWiseLatest), 2) AS Death_Contribution_Percentage
+FROM 
+    CountryWiseLatest
+ORDER BY 
+    Death_Contribution_Percentage DESC
+LIMIT 10;
+
+
