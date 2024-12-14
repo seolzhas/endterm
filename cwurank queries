@@ -1,0 +1,94 @@
+SELECT * FROM public.cwur_rankings
+
+------
+"Top 5 with best unis"
+SELECT 
+    country, 
+    COUNT(*) AS institution_count
+FROM 
+    cwur_rankings
+WHERE 
+    world_rank <= 100
+GROUP BY 
+    country
+ORDER BY 
+    institution_count DESC
+LIMIT 5;
+
+----
+"High score but low patents"
+WITH score_threshold AS (
+    SELECT 
+        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY score) AS high_score_threshold
+    FROM 
+        cwur_rankings
+),
+patent_threshold AS (
+    SELECT 
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY patents) AS median_patents
+    FROM 
+        cwur_rankings
+)
+SELECT 
+    institution, 
+    country, 
+    score, 
+    patents,
+	year
+FROM 
+    cwur_rankings, 
+    score_threshold, 
+    patent_threshold
+WHERE 
+    score > high_score_threshold 
+    AND patents < median_patents
+ORDER BY 
+    score DESC;
+
+----
+"Steadiest Performance"
+
+SELECT 
+    institution, 
+    ROUND(STDDEV(world_rank), 2) AS rank_variance
+FROM 
+    cwur_rankings
+GROUP BY 
+    institution
+ORDER BY 
+    rank_variance ASC
+LIMIT 10;
+
+----
+"ratio"
+SELECT 
+    institution, 
+    country, 
+    influence, 
+    publications,
+    ROUND(influence::NUMERIC / publications, 2) AS influence_to_publications_ratio
+FROM 
+    cwur_rankings
+WHERE 
+    publications > 0
+ORDER BY 
+    influence_to_publications_ratio DESC
+LIMIT 10;
+
+-----
+"influence to score ratio"
+SELECT 
+    institution, 
+    country, 
+    influence, 
+    score, 
+    ROUND(influence::NUMERIC / score::NUMERIC, 2) AS influence_to_score_ratio
+FROM 
+    cwur_rankings
+WHERE 
+    score > 0
+ORDER BY 
+    influence_to_score_ratio DESC
+LIMIT 10;
+
+
